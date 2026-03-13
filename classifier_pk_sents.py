@@ -8,6 +8,7 @@ import json
 import time
 
 from data_model import Sentence
+from parser_sentence import SentenceSplitter
 
 # Pydantic модель для результата классификации
 class ClassificationResult(BaseModel):
@@ -228,22 +229,40 @@ def print_classification_summary(sentences: List[Sentence]):
             print(f"  Объяснение: {reasoning_preview}")
 
 # Пример использования
-async def main():
-    # Ваши данные (сокращенный пример)
-    sentences = [
-        Sentence(text='Всасывание Аллопуринол активен при пероральном применении.', index=0, start_char=0, end_char=58, length=58, category=None, confidence=None, reasoning=None, section='pk'),
-        Sentence(text='Он быстро всасывается из верхних отделов желудочно-кишечного тракта (ЖКТ).', index=1, start_char=59, end_char=133, length=74, category=None, confidence=None, reasoning=None, section='pk'),
-        Sentence(text='По данным фармакокинетических исследований аллопуринол определяется в крови уже через 30 - 60 минут после приема.', index=2, start_char=134, end_char=247, length=113, category=None, confidence=None, reasoning=None, section='pk'),
-        Sentence(text='Биодоступность аллопуринола варьирует от 67 % до 90 %.', index=3, start_char=248, end_char=302, length=54, category=None, confidence=None, reasoning=None, section='pk',),
-        Sentence(text='Максимальная концентрация препарата в плазме крови (TCmax) как правило регистрируется приблизительно через 1,5 часа после перорального приема.', index=4, start_char=303, end_char=445, length=142, category=None, confidence=None, reasoning=None, section='pk'),
-        Sentence(text='Затем концентрация аллопуринола быстро снижается.', index=5, start_char=446, end_char=495, length=49, category=None, confidence=None, reasoning=None, section='pk'),
-        Sentence(text='Спустя 6 часов приема, в плазме крови определяется лишь следовая концентрация препарата.', index=6, start_char=496, end_char=584, length=88, category=None, confidence=None, reasoning=None, section='pk'),
-        Sentence(text='Максимальная концентрация (Cmax) активного метаболита – оксипуринола обычно регистрируется через 3 - 5 часов после перорального приема аллопуринола.', index=7, start_char=585, end_char=738, length=153, category=None, confidence=None, reasoning=None, section='pk'),
-        Sentence(text='Концентрация оксипуринола в плазме крови снижается значительно медленнее', index=8, start_char=739, end_char=812, length=73, category=None, confidence=None, reasoning=None, section='pk'),
-        Sentence(text='Распределение Аллопуринол почти не связывается с белками плазмы крови, поэтому изменения степени связывания с белками не должны оказывать значительного влияния на клиренс препарата.', index=9, start_char=813, end_char=994, length=181, category=None, confidence=None, reasoning=None, section='pk'),
-        Sentence(text='Кажущийся объем распределения (Vd) аллопуринола составляет приблизительно 1,6 литра/кг, что говорит о достаточно выраженном поглощении препарата тканями.', index=10, start_char=995, end_char=1148, length=153, category=None, confidence=None, reasoning=None, section='pk'),
-    ]
+def main():
+    # # Ваши данные (сокращенный пример)
+    # sentences = [
+    #     Sentence(text='Всасывание Аллопуринол активен при пероральном применении.', index=0, start_char=0, end_char=58, length=58, category=None, confidence=None, reasoning=None, section='pk'),
+    #     Sentence(text='Он быстро всасывается из верхних отделов желудочно-кишечного тракта (ЖКТ).', index=1, start_char=59, end_char=133, length=74, category=None, confidence=None, reasoning=None, section='pk'),
+    #     Sentence(text='По данным фармакокинетических исследований аллопуринол определяется в крови уже через 30 - 60 минут после приема.', index=2, start_char=134, end_char=247, length=113, category=None, confidence=None, reasoning=None, section='pk'),
+    #     Sentence(text='Биодоступность аллопуринола варьирует от 67 % до 90 %.', index=3, start_char=248, end_char=302, length=54, category=None, confidence=None, reasoning=None, section='pk',),
+    #     Sentence(text='Максимальная концентрация препарата в плазме крови (TCmax) как правило регистрируется приблизительно через 1,5 часа после перорального приема.', index=4, start_char=303, end_char=445, length=142, category=None, confidence=None, reasoning=None, section='pk'),
+    #     Sentence(text='Затем концентрация аллопуринола быстро снижается.', index=5, start_char=446, end_char=495, length=49, category=None, confidence=None, reasoning=None, section='pk'),
+    #     Sentence(text='Спустя 6 часов приема, в плазме крови определяется лишь следовая концентрация препарата.', index=6, start_char=496, end_char=584, length=88, category=None, confidence=None, reasoning=None, section='pk'),
+    #     Sentence(text='Максимальная концентрация (Cmax) активного метаболита – оксипуринола обычно регистрируется через 3 - 5 часов после перорального приема аллопуринола.', index=7, start_char=585, end_char=738, length=153, category=None, confidence=None, reasoning=None, section='pk'),
+    #     Sentence(text='Концентрация оксипуринола в плазме крови снижается значительно медленнее', index=8, start_char=739, end_char=812, length=73, category=None, confidence=None, reasoning=None, section='pk'),
+    #     Sentence(text='Распределение Аллопуринол почти не связывается с белками плазмы крови, поэтому изменения степени связывания с белками не должны оказывать значительного влияния на клиренс препарата.', index=9, start_char=813, end_char=994, length=181, category=None, confidence=None, reasoning=None, section='pk'),
+    #     Sentence(text='Кажущийся объем распределения (Vd) аллопуринола составляет приблизительно 1,6 литра/кг, что говорит о достаточно выраженном поглощении препарата тканями.', index=10, start_char=995, end_char=1148, length=153, category=None, confidence=None, reasoning=None, section='pk'),
+    # ]
+
     
+    with open('data\\extracted_data_all.json', 'r', encoding='utf-8') as file:
+        data = json.load(file)
+
+    text_list = [item['text'] for item in data]
+
+
+    sentence_splitter = SentenceSplitter()
+
+    sentences = []    
+    for text in text_list:
+        pd_sents, pk_sents = sentence_splitter.mechanic_action_split_text(text)
+        sentences.extend(pk_sents)
+
+    print("sentences:", sentences)
+    # return sentences
+
+
     # Инициализация классификатора
     classifier = SentenceClassifier(
         model_name="ilyagusev/saiga_llama3",  # Убедитесь, что модель загружена в Ollama
@@ -261,7 +280,7 @@ async def main():
     print_classification_summary(processed_sentences)
     
     # Сохранение результатов в файл
-    save_results_to_file(processed_sentences, "classification_results.json")
+    save_results_to_file(processed_sentences, "data\\classification_results.json")
 
 def save_results_to_file(sentences: List[Sentence], filename: str):
     """
@@ -288,4 +307,4 @@ def save_results_to_file(sentences: List[Sentence], filename: str):
 
 # Запуск
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
